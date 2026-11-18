@@ -40,6 +40,9 @@ public class TradingEnginePipeline implements DualFeedArbitrator.MarketDataConsu
     private int securityId = 1;
     private long symbolAscii = 0x4141504c20202020L; // "AAPL    "
 
+    // Risk policy: whether asymmetric quotes are allowed or paired quotes must both pass
+    private boolean enforceDeltaNeutralQuotePair = true;
+
     // Metrics
     private long processedTicks = 0L;
     private long ordersGenerated = 0L;
@@ -112,54 +115,66 @@ public class TradingEnginePipeline implements DualFeedArbitrator.MarketDataConsu
             return;
         }
 
-        // 4. Pre-Trade Risk Gate evaluation & Gateway Submission (Bid Quote)
+        // 4. Pre-Trade Risk Gate evaluation (Two-Sided Quoting)
+        long bidRejectMask = RiskRejectCode.SUCCESS;
+        long askRejectMask = RiskRejectCode.SUCCESS;
+
         if (quote.shouldQuoteBid) {
-            long clOrdId = ++clientOrderIdSeq;
-            long rejectMask = riskGate.evaluateOrder(t2_book, securityId, Side.BUY,
+            bidRejectMask = riskGate.evaluateOrder(t2_book, securityId, Side.BUY,
                     quote.targetBidShares, quote.targetBidPrice,
                     orderBook.getBestBidPrice(), orderBook.getBestAskPrice());
+        }
 
-            long t3_risk = System.nanoTime();
+        if (quote.shouldQuoteAsk) {
+            askRejectMask = riskGate.evaluateOrder(t2_book, securityId, Side.SELL,
+                    quote.targetAskShares, quote.targetAskPrice,
+                    orderBook.getBestBidPrice(), orderBook.getBestAskPrice());
+        }
 
-            if (RiskRejectCode.isApproved(rejectMask)) {
-                gateway.submitNewOrder(clOrdId, Side.BUY, quote.targetBidShares, symbolAscii,
-                        (int) quote.targetBidPrice, 1, 100, t1_rx, t2_book, t3_risk);
-                ordersGenerated++;
-                long t4_wire = gateway.getOrderState(clOrdId).t4_wireTxNanos;
-                lastTickToTradeNanos = t4_wire - t1_rx;
+        // If delta-neutral pair gating is enforced and either leg fails, suppress both
+        boolean bidApproved = quote.shouldQuoteBid && RiskRejectCode.isApproved(bidRejectMask);
+        boolean askApproved = quote.shouldQuoteAsk && RiskRejectCode.isApproved(askRejectMask);
 
-                auditJournal.publishAuditRecord(sequenceNumber, clOrdId, Side.BUY, quote.targetBidPrice,
-                        quote.targetBidShares, RiskRejectCode.SUCCESS, t1_rx, t2_book, t3_risk, t4_wire);
-            } else {
-                ordersRiskRejected++;
-                auditJournal.publishAuditRecord(sequenceNumber, clOrdId, Side.BUY, quote.targetBidPrice,
-                        quote.targetBidShares, rejectMask, t1_rx, t2_book, t3_risk, t3_risk);
+        if (enforceDeltaNeutralQuotePair && quote.shouldQuoteBid && quote.shouldQuoteAsk) {
+            if (!bidApproved || !askApproved) {
+                bidApproved = false;
+                askApproved = false;
             }
         }
 
-        // 5. Pre-Trade Risk Gate evaluation & Gateway Submission (Ask Quote)
-        if (quote.shouldQuoteAsk) {
+        long t3_risk = System.nanoTime();
+
+        // 5. Gateway Dispatch
+        if (bidApproved) {
             long clOrdId = ++clientOrderIdSeq;
-            long rejectMask = riskGate.evaluateOrder(t2_book, securityId, Side.SELL,
-                    quote.targetAskShares, quote.targetAskPrice,
-                    orderBook.getBestBidPrice(), orderBook.getBestAskPrice());
+            gateway.submitNewOrder(clOrdId, Side.BUY, quote.targetBidShares, symbolAscii,
+                    (int) quote.targetBidPrice, 1, 100, t1_rx, t2_book, t3_risk);
+            ordersGenerated++;
+            long t4_wire = gateway.getOrderState(clOrdId).t4_wireTxNanos;
+            lastTickToTradeNanos = t4_wire - t1_rx;
 
-            long t3_risk = System.nanoTime();
+            auditJournal.publishAuditRecord(sequenceNumber, clOrdId, Side.BUY, quote.targetBidPrice,
+                    quote.targetBidShares, RiskRejectCode.SUCCESS, t1_rx, t2_book, t3_risk, t4_wire);
+        } else if (quote.shouldQuoteBid) {
+            ordersRiskRejected++;
+            auditJournal.publishAuditRecord(sequenceNumber, ++clientOrderIdSeq, Side.BUY, quote.targetBidPrice,
+                    quote.targetBidShares, bidRejectMask, t1_rx, t2_book, t3_risk, t3_risk);
+        }
 
-            if (RiskRejectCode.isApproved(rejectMask)) {
-                gateway.submitNewOrder(clOrdId, Side.SELL, quote.targetAskShares, symbolAscii,
-                        (int) quote.targetAskPrice, 1, 100, t1_rx, t2_book, t3_risk);
-                ordersGenerated++;
-                long t4_wire = gateway.getOrderState(clOrdId).t4_wireTxNanos;
-                lastTickToTradeNanos = t4_wire - t1_rx;
+        if (askApproved) {
+            long clOrdId = ++clientOrderIdSeq;
+            gateway.submitNewOrder(clOrdId, Side.SELL, quote.targetAskShares, symbolAscii,
+                    (int) quote.targetAskPrice, 1, 100, t1_rx, t2_book, t3_risk);
+            ordersGenerated++;
+            long t4_wire = gateway.getOrderState(clOrdId).t4_wireTxNanos;
+            lastTickToTradeNanos = t4_wire - t1_rx;
 
-                auditJournal.publishAuditRecord(sequenceNumber, clOrdId, Side.SELL, quote.targetAskPrice,
-                        quote.targetAskShares, RiskRejectCode.SUCCESS, t1_rx, t2_book, t3_risk, t4_wire);
-            } else {
-                ordersRiskRejected++;
-                auditJournal.publishAuditRecord(sequenceNumber, clOrdId, Side.SELL, quote.targetAskPrice,
-                        quote.targetAskShares, rejectMask, t1_rx, t2_book, t3_risk, t3_risk);
-            }
+            auditJournal.publishAuditRecord(sequenceNumber, clOrdId, Side.SELL, quote.targetAskPrice,
+                    quote.targetAskShares, RiskRejectCode.SUCCESS, t1_rx, t2_book, t3_risk, t4_wire);
+        } else if (quote.shouldQuoteAsk) {
+            ordersRiskRejected++;
+            auditJournal.publishAuditRecord(sequenceNumber, ++clientOrderIdSeq, Side.SELL, quote.targetAskPrice,
+                    quote.targetAskShares, askRejectMask, t1_rx, t2_book, t3_risk, t3_risk);
         }
     }
 
@@ -205,5 +220,13 @@ public class TradingEnginePipeline implements DualFeedArbitrator.MarketDataConsu
 
     public void setInventory(long currentInventory) {
         this.currentInventory = currentInventory;
+    }
+
+    public void setEnforceDeltaNeutralQuotePair(boolean enforceDeltaNeutralQuotePair) {
+        this.enforceDeltaNeutralQuotePair = enforceDeltaNeutralQuotePair;
+    }
+
+    public boolean isEnforceDeltaNeutralQuotePair() {
+        return enforceDeltaNeutralQuotePair;
     }
 }
