@@ -4,12 +4,12 @@ import com.hft.core.model.ModelConstants;
 import com.hft.orderbook.OrderBookL3;
 
 /**
- * Avellaneda-Stoikov Market Making Core & Microstructure Signal Strategy.
+ * Avellaneda-Stoikov Market Making Core &amp; Microstructure Signal Strategy.
  * 
  * Features:
  * 1. Fixed-point reservation price calculation r(s, q) shifting spread around inventory.
- * 2. Real-time Order Book Imbalance (OBI) & volume-weighted micro-price incorporation.
- * 3. Toxic sweep detection triggering instant quote fading (< 200ns).
+ * 2. Real-time Order Book Imbalance (OBI) &amp; volume-weighted micro-price incorporation.
+ * 3. Toxic sweep detection triggering instant quote fading (&lt; 200ns).
  * 4. Strictly 0 heap allocation on the hot path.
  */
 public class AvellanedaStoikovStrategy {

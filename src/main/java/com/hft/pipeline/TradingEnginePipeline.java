@@ -15,14 +15,14 @@ import com.hft.strategy.AvellanedaStoikovStrategy;
  * Co-Located Ultra-Low Latency Trading Engine Pipeline (Pinned Core 3).
  * 
  * Pipeline Execution:
- * 1. T1: UDP Packet arrival & A/B Arbitration.
+ * 1. T1: UDP Packet arrival &amp; A/B Arbitration.
  * 2. T2: Order Book L3/L2 update.
- * 3. T3: Strategy quote generation & SEC 15c3-5 Pre-trade Risk Gate approval.
- * 4. T4: Execution Gateway OUCH wire serialization & transmission.
+ * 3. T3: Strategy quote generation &amp; SEC 15c3-5 Pre-trade Risk Gate approval.
+ * 4. T4: Execution Gateway OUCH wire serialization &amp; transmission.
  * 
  * Invariants:
  * - Steady-state heap allocation: Strictly 0 bytes.
- * - Single isolated CPU core execution (< 950ns intra-core tick-to-trade).
+ * - Single isolated CPU core execution (&lt; 950ns intra-core tick-to-trade).
  * - Fully deterministic audit trail tapping to background core.
  */
 public class TradingEnginePipeline implements DualFeedArbitrator.MarketDataConsumer {

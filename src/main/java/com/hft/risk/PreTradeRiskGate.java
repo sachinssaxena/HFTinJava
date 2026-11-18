@@ -8,7 +8,7 @@ import com.hft.core.model.Side;
  * Ultra-low latency in-line Pre-Trade Risk Gate compliant with SEC Rule 15c3-5.
  * 
  * Invariants:
- * 1. Executes all 8 regulatory checks in a single method call in < 300ns.
+ * 1. Executes all 8 regulatory checks in a single method call in &lt; 300ns.
  * 2. Strictly 0 bytes heap allocation on hot path.
  * 3. Returns primitive 64-bit bitmask reject codes without throwing exceptions.
  * 4. Zero-delay atomic emergency kill-switch.
@@ -56,7 +56,7 @@ public class PreTradeRiskGate {
     }
 
     /**
-     * Executes all 8 SEC Rule 15c3-5 checks sequentially in < 300ns.
+     * Executes all 8 SEC Rule 15c3-5 checks sequentially in &lt; 300ns.
      * 
      * @param timestampNanos Current high-resolution timestamp
      * @param securityId     Numeric security identifier

@@ -5,7 +5,7 @@ import com.hft.core.buffer.MutableDirectBuffer;
 /**
  * NASDAQ OUCH 5.0 binary order entry protocol serializer.
  * Writes wire packets directly into pre-allocated off-heap direct byte buffers in Big-Endian order.
- * Serialization latency: < 250ns.
+ * Serialization latency: &lt; 250ns.
  */
 public class Ouch50WireFormatter {
 

@@ -5,7 +5,7 @@ import com.hft.core.buffer.DirectBuffer;
 /**
  * High-performance dual-feed (Channel A / Channel B) UDP packet receiver and sequence arbitrator.
  * Features:
- * - O(1) single-cycle sequence deduplication (< 25ns overhead).
+ * - O(1) single-cycle sequence deduplication (&lt; 25ns overhead).
  * - Instant gap detection triggering asynchronous out-of-band TCP replay.
  * - Zero heap allocation during steady-state processing.
  * - Defensive quoting mode transition on sequence divergence.
