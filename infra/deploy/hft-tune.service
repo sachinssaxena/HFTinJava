@@ -1,0 +1,22 @@
+[Unit]
+Description=Ultra-Low Latency Kernel & Hardware Tuning Service for HFT Engine
+After=network.target local-fs.target
+Before=hft-engine.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/bash /app/infra/deploy/deploy_production.sh --tune-only
+TimeoutSec=60
+
+# Execution privileges
+User=root
+Group=root
+
+# Capabilities and scheduling
+CPUSchedulingPolicy=fifo
+CPUSchedulingPriority=99
+LimitMEMLOCK=infinity
+
+[Install]
+WantedBy=multi-user.target

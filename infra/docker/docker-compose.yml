@@ -1,0 +1,63 @@
+version: '3.8'
+
+# ==============================================================================
+# Docker Compose Manifest for Ultra-Low Latency Java HFT Platform
+# Target: Production Bare-Metal / Colocated Container Execution
+# Privileges: Host Network, Real-Time FIFO Scheduling, Kernel Bypass Devices
+# ==============================================================================
+
+services:
+  hft-trading-engine:
+    build:
+      context: ..
+      dockerfile: infra/docker/Dockerfile
+    image: hft-platform:latest
+    container_name: hft-trading-engine
+    
+    # Strictly require host networking to bypass Docker bridge network virtualization
+    network_mode: "host"
+    
+    # Real-time and hardware capabilities
+    cap_add:
+      - SYS_NICE      # Allows thread priority setting, FIFO scheduling, core pinning
+      - NET_RAW       # Raw socket and packet capture access
+      - NET_ADMIN     # Network interface configuration
+      - IPC_LOCK      # mlockall() memory locking against swapping
+      - SYS_RAWIO     # Direct hardware register and PCIe access
+      
+    # Unlimited locked memory and max real-time priority
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      rtprio:
+        soft: 99
+        hard: 99
+      nofile:
+        soft: 1048576
+        hard: 1048576
+
+    # Restrict container scheduling to NUMA Node 0 (Cores 0-7)
+    cpuset: "0-7"
+
+    # Volume mounts for hugepages and logging
+    volumes:
+      - /dev/hugepages1G:/dev/hugepages1G
+      - /dev/hugepages2M:/dev/hugepages2M
+      - /var/log/hft:/var/log/hft
+      - /etc/localtime:/etc/localtime:ro
+
+    # Direct hardware device passthroughs
+    devices:
+      - "/dev/ptp0:/dev/ptp0"
+      - "/dev/cpu_dma_latency:/dev/cpu_dma_latency"
+
+    environment:
+      - EF_POLL_USEC=-1
+      - EF_SPIN_USEC=-1
+      - EF_STACK_PER_THREAD=1
+      - EF_RX_TIMESTAMPING=1
+      - EF_CPUS=2,3,4,5
+
+    command: ["production"]
+    restart: "no"
