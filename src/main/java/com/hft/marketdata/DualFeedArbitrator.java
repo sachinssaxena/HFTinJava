@@ -43,6 +43,18 @@ public class DualFeedArbitrator {
      * Evaluates sequence number for deduplication or gap handling in-line.
      */
     public void onPacket(byte feedId, long sequenceNumber, DirectBuffer buffer, int offset, int length) {
+        // 0. Initial packet on stream startup establishes the baseline sequence
+        if (lastProcessedSeqNum == 0L) {
+            lastProcessedSeqNum = sequenceNumber;
+            if (feedId == FEED_A) {
+                feedAPacketsCount++;
+            } else {
+                feedBPacketsCount++;
+            }
+            consumer.onMarketDataMessage(feedId, sequenceNumber, buffer, offset, length);
+            return;
+        }
+
         // 1. Fast duplicate detection: Discard immediately in < 25ns
         if (sequenceNumber <= lastProcessedSeqNum) {
             droppedDuplicatesCount++;

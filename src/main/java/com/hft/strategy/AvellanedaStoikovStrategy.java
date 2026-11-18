@@ -15,6 +15,8 @@ import com.hft.orderbook.OrderBookL3;
 public class AvellanedaStoikovStrategy {
 
     public static class QuoteIntent {
+        public long reservationPrice;
+        public long obiScaled;
         public long targetBidPrice;
         public int targetBidShares;
         public long targetAskPrice;
@@ -109,6 +111,8 @@ public class AvellanedaStoikovStrategy {
             toxicFade = true;
         }
 
+        quoteIntent.reservationPrice = reservationPrice;
+        quoteIntent.obiScaled = obi;
         quoteIntent.targetBidPrice = bidPrice;
         quoteIntent.targetBidShares = standardQuoteSize;
         quoteIntent.targetAskPrice = askPrice;

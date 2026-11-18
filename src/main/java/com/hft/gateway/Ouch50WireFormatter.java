@@ -1,6 +1,7 @@
 package com.hft.gateway;
 
 import com.hft.core.buffer.MutableDirectBuffer;
+import com.hft.core.model.Side;
 
 /**
  * NASDAQ OUCH 5.0 binary order entry protocol serializer.
@@ -26,7 +27,9 @@ public class Ouch50WireFormatter {
         dst.putByte(offset, MSG_ENTER_ORDER);
         dst.putLongBigEndian(offset + 1, clientOrderId);
         dst.putLongBigEndian(offset + 9, 0L); // pad remainder of 14-byte token
-        dst.putByte(offset + 15, side);
+        byte wireSide = (side == Side.BUY || side == (byte) 'B') ? (byte) 'B'
+                : (side == Side.SELL || side == (byte) 'S') ? (byte) 'S' : side;
+        dst.putByte(offset + 15, wireSide);
         dst.putIntBigEndian(offset + 16, shares);
         dst.putLongBigEndian(offset + 20, stockSymbol);
         dst.putIntBigEndian(offset + 28, price);

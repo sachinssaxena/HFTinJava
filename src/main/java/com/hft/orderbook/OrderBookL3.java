@@ -381,6 +381,40 @@ public class OrderBookL3 {
     }
 
     /**
+     * Computes the number of distinct orders ahead of this order in the queue priority chain.
+     */
+    public int getOrdersAhead(long orderId) {
+        int nodeIdx = orderIndexMap.get(orderId);
+        if (nodeIdx == NULL_INDEX) {
+            return -1;
+        }
+
+        int count = 0;
+        int curr = poolPrev[nodeIdx];
+        while (curr != NULL_INDEX) {
+            count++;
+            curr = poolPrev[curr];
+        }
+        return count;
+    }
+
+    public long getBestBidVolume() {
+        return bestBidQty;
+    }
+
+    public long getBestAskVolume() {
+        return bestAskQty;
+    }
+
+    public long getAskPrice(int level) {
+        return getAskPriceAt(level);
+    }
+
+    public long getBidPrice(int level) {
+        return getBidPriceAt(level);
+    }
+
+    /**
      * Checks if the order book is in an inverted or crossed state (Bid >= Ask).
      */
     public boolean isCrossed() {

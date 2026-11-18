@@ -187,14 +187,26 @@ public class PreTradeRiskGate {
         this.restingFirmSellPrice = sellPrice;
     }
 
+    public void updateRestingQuotes(long buyPrice, long sellPrice) {
+        updateRestingFirmQuotes(buyPrice, sellPrice);
+    }
+
     public void updateInventory(long currentInventory, long openWorkingBuyQty, long openWorkingSellQty) {
         this.currentInventory = currentInventory;
         this.openWorkingBuyQty = openWorkingBuyQty;
         this.openWorkingSellQty = openWorkingSellQty;
     }
 
+    public void updateInventory(long currentInventory) {
+        this.currentInventory = currentInventory;
+    }
+
     public void triggerEmergencyKillSwitch() {
         this.killSwitchActive = true;
+    }
+
+    public void tripKillSwitch() {
+        triggerEmergencyKillSwitch();
     }
 
     public void resetEmergencyKillSwitch() {

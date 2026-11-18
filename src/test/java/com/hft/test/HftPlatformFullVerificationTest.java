@@ -440,8 +440,8 @@ public class HftPlatformFullVerificationTest {
             assertEquals(Ouch50WireFormatter.ENTER_ORDER_LENGTH, bytesWritten);
             assertEquals((byte) 'O', outBuf.getByte(0), "Offset 0 must be MessageType 'O'");
             assertEquals((byte) 'B', outBuf.getByte(15), "Offset 15 must be Side 'B'");
-            assertEquals(500, outBuf.getInt(16), "Offset 16 must be Shares 500");
-            assertEquals(1_500_000, outBuf.getInt(28), "Offset 28 must be Price $150.00");
+            assertEquals(500, outBuf.getIntBigEndian(16), "Offset 16 must be Shares 500");
+            assertEquals(1_500_000, outBuf.getIntBigEndian(28), "Offset 28 must be Price $150.00");
         }
 
         @Test

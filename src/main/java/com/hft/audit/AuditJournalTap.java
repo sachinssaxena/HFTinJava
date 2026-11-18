@@ -53,6 +53,25 @@ public class AuditJournalTap {
         return drained;
     }
 
+    /**
+     * Polls a single pending audit record and passes it to the consumer.
+     */
+    public boolean poll(java.util.function.Consumer<AuditJournalEntry> consumer) {
+        long seq = ringBuffer.poll();
+        if (seq < 0) {
+            return false;
+        }
+
+        AuditJournalEntry entry = ringBuffer.get(seq);
+        if (!entry.isMonotonic()) {
+            nonMonotonicAnomalies++;
+        }
+        totalEventsJournaled++;
+        consumer.accept(entry);
+        ringBuffer.release(seq);
+        return true;
+    }
+
     public long getTotalEventsJournaled() {
         return totalEventsJournaled;
     }

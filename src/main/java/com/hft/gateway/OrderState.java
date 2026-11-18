@@ -13,8 +13,11 @@ public class OrderState {
     public long price;
     public int shares;
     public int executedShares;
+    public int cumQty;
     public int leavesShares;
+    public int leavesQty;
     public byte orderStatus = OrderStatus.PENDING_NEW;
+    public byte status = OrderStatus.PENDING_NEW;
 
     // MiFID II RTS 25 Nanosecond Checkpoint Timestamps
     public long t1_rxNanos;
@@ -28,8 +31,11 @@ public class OrderState {
         this.price = 0L;
         this.shares = 0;
         this.executedShares = 0;
+        this.cumQty = 0;
         this.leavesShares = 0;
+        this.leavesQty = 0;
         this.orderStatus = OrderStatus.PENDING_NEW;
+        this.status = OrderStatus.PENDING_NEW;
         this.t1_rxNanos = 0L;
         this.t2_bookNanos = 0L;
         this.t3_riskDecisionNanos = 0L;

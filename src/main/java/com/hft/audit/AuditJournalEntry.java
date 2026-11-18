@@ -16,6 +16,7 @@ public class AuditJournalEntry {
     public long t1_rxNanos;
     public long t2_bookNanos;
     public long t3_decisionNanos;
+    public long t3_riskNanos;
     public long t4_wireTxNanos;
 
     public void set(long seq, long clientOrderId, byte side, long price, int shares, long rejectMask,
@@ -29,6 +30,7 @@ public class AuditJournalEntry {
         this.t1_rxNanos = t1;
         this.t2_bookNanos = t2;
         this.t3_decisionNanos = t3;
+        this.t3_riskNanos = t3;
         this.t4_wireTxNanos = t4;
     }
 

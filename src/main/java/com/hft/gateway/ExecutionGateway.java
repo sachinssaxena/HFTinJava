@@ -55,12 +55,15 @@ public class ExecutionGateway {
         }
 
         OrderState state = statePool[--poolTop];
+        state.reset();
         state.clientOrderId = clientOrderId;
         state.side = side;
         state.shares = shares;
         state.leavesShares = shares;
+        state.leavesQty = shares;
         state.price = price;
         state.orderStatus = OrderStatus.PENDING_NEW;
+        state.status = OrderStatus.PENDING_NEW;
         state.t1_rxNanos = t1_rx;
         state.t2_bookNanos = t2_book;
         state.t3_riskDecisionNanos = t3_risk;
@@ -105,23 +108,35 @@ public class ExecutionGateway {
         OrderState state = activeOrders.get(clientOrderId);
         if (state != null) {
             state.orderStatus = OrderStatus.NEW;
+            state.status = OrderStatus.NEW;
         }
+    }
+
+    public void onOrderAccepted(long clientOrderId, long timestampNanos) {
+        onOrderAcknowledged(clientOrderId);
     }
 
     public void onOrderFilled(long clientOrderId, int filledShares) {
         OrderState state = activeOrders.get(clientOrderId);
         if (state != null) {
             state.executedShares += filledShares;
+            state.cumQty = state.executedShares;
             state.leavesShares -= filledShares;
+            state.leavesQty = state.leavesShares;
             if (state.leavesShares <= 0) {
                 state.orderStatus = OrderStatus.FILLED;
+                state.status = OrderStatus.FILLED;
                 activeOrders.remove(clientOrderId);
-                state.reset();
                 statePool[poolTop++] = state;
             } else {
                 state.orderStatus = OrderStatus.PARTIALLY_FILLED;
+                state.status = OrderStatus.PARTIALLY_FILLED;
             }
         }
+    }
+
+    public void onOrderExecuted(long clientOrderId, int executedShares, long executionPrice) {
+        onOrderFilled(clientOrderId, executedShares);
     }
 
     public void onOrderCanceled(long clientOrderId) {
