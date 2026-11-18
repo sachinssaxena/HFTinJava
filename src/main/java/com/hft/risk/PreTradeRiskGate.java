@@ -37,8 +37,8 @@ public class PreTradeRiskGate {
     // 6. Short Locate Bitset (indexed by security locate ID 0..1023)
     private final long[] shortLocateBitset = new long[16]; // 16 * 64 = 1024 locates
 
-    // 7. Rolling Window Rate Limiter (Circular buffer of timestamps)
-    private static final int RATE_LIMIT_CAPACITY = 2048;
+    // 7. Rolling Window Rate Limiter (O(1) Circular ring buffer of timestamps)
+    private static final int RATE_LIMIT_CAPACITY = 16384;
     private static final int RATE_LIMIT_MASK = RATE_LIMIT_CAPACITY - 1;
     private final long[] orderTimestamps = new long[RATE_LIMIT_CAPACITY];
     private int orderTimestampHead = 0;
@@ -146,23 +146,19 @@ public class PreTradeRiskGate {
     }
 
     private boolean checkRateLimit(long currentTimestampNanos) {
-        long window1msStart = currentTimestampNanos - ModelConstants.NANOS_PER_MILLI;
-        long window1000msStart = currentTimestampNanos - ModelConstants.NANOS_PER_SECOND;
-
-        int count1ms = 0;
-        int count1000ms = 0;
-
-        for (int i = 0; i < RATE_LIMIT_CAPACITY; i++) {
-            long ts = orderTimestamps[i];
-            if (ts >= window1msStart) {
-                count1ms++;
-            }
-            if (ts >= window1000msStart) {
-                count1000ms++;
+        if (orderTimestampHead >= maxOrdersPer1ms) {
+            long ts1ms = orderTimestamps[(orderTimestampHead - maxOrdersPer1ms) & RATE_LIMIT_MASK];
+            if ((currentTimestampNanos - ts1ms) < ModelConstants.NANOS_PER_MILLI) {
+                return false;
             }
         }
-
-        return count1ms < maxOrdersPer1ms && count1000ms < maxOrdersPer1000ms;
+        if (orderTimestampHead >= maxOrdersPer1000ms) {
+            long ts1000ms = orderTimestamps[(orderTimestampHead - maxOrdersPer1000ms) & RATE_LIMIT_MASK];
+            if ((currentTimestampNanos - ts1000ms) < ModelConstants.NANOS_PER_SECOND) {
+                return false;
+            }
+        }
+        return true;
     }
 
     private void recordOrder(long currentTimestampNanos) {

@@ -198,10 +198,13 @@ public class OrderBookL3 {
     }
 
     public boolean replaceOrder(long origOrderId, long newOrderId, int newShares, long newPrice) {
+        int nodeIdx = orderIndexMap.get(origOrderId);
+        if (nodeIdx == NULL_INDEX) {
+            return false;
+        }
+        byte side = poolSide[nodeIdx];
         deleteOrder(origOrderId);
-        // Default side preserved or looked up
-        // Here we require side, but if unknown we can assume same or handled externally
-        return addOrder(newOrderId, poolSide[0] != 0 ? poolSide[0] : Side.BUY, newShares, newPrice);
+        return addOrder(newOrderId, side, newShares, newPrice);
     }
 
     public boolean replaceOrder(long origOrderId, long newOrderId, byte side, int newShares, long newPrice) {

@@ -112,7 +112,7 @@ public class TradingEnginePipeline implements DualFeedArbitrator.MarketDataConsu
             return;
         }
 
-        // 4. Pre-Trade Risk Gate evaluation (Evaluate Bid Quote)
+        // 4. Pre-Trade Risk Gate evaluation & Gateway Submission (Bid Quote)
         if (quote.shouldQuoteBid) {
             long clOrdId = ++clientOrderIdSeq;
             long rejectMask = riskGate.evaluateOrder(t2_book, securityId, Side.BUY,
@@ -134,6 +134,31 @@ public class TradingEnginePipeline implements DualFeedArbitrator.MarketDataConsu
                 ordersRiskRejected++;
                 auditJournal.publishAuditRecord(sequenceNumber, clOrdId, Side.BUY, quote.targetBidPrice,
                         quote.targetBidShares, rejectMask, t1_rx, t2_book, t3_risk, t3_risk);
+            }
+        }
+
+        // 5. Pre-Trade Risk Gate evaluation & Gateway Submission (Ask Quote)
+        if (quote.shouldQuoteAsk) {
+            long clOrdId = ++clientOrderIdSeq;
+            long rejectMask = riskGate.evaluateOrder(t2_book, securityId, Side.SELL,
+                    quote.targetAskShares, quote.targetAskPrice,
+                    orderBook.getBestBidPrice(), orderBook.getBestAskPrice());
+
+            long t3_risk = System.nanoTime();
+
+            if (RiskRejectCode.isApproved(rejectMask)) {
+                gateway.submitNewOrder(clOrdId, Side.SELL, quote.targetAskShares, symbolAscii,
+                        (int) quote.targetAskPrice, 1, 100, t1_rx, t2_book, t3_risk);
+                ordersGenerated++;
+                long t4_wire = gateway.getOrderState(clOrdId).t4_wireTxNanos;
+                lastTickToTradeNanos = t4_wire - t1_rx;
+
+                auditJournal.publishAuditRecord(sequenceNumber, clOrdId, Side.SELL, quote.targetAskPrice,
+                        quote.targetAskShares, RiskRejectCode.SUCCESS, t1_rx, t2_book, t3_risk, t4_wire);
+            } else {
+                ordersRiskRejected++;
+                auditJournal.publishAuditRecord(sequenceNumber, clOrdId, Side.SELL, quote.targetAskPrice,
+                        quote.targetAskShares, rejectMask, t1_rx, t2_book, t3_risk, t3_risk);
             }
         }
     }
