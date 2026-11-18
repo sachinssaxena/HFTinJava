@@ -1,0 +1,108 @@
+name: Java 21 HFT Engine CI/CD
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ----------------------------------------------------------------------------
+  # Job 1: Build, Test & Zero-Allocation Assertion Verification
+  # ----------------------------------------------------------------------------
+  build-and-test:
+    name: Build, Verify Zero-Allocation & Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21 (Eclipse Temurin)
+        uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Compile Source Code
+        run: mvn clean compile test-compile --batch-mode
+
+      - name: Run JUnit 5 Verification Test Suites
+        run: mvn test --batch-mode
+
+      - name: Run Standalone Zero-Allocation & Latency Benchmarks
+        run: |
+          java --add-opens java.base/jdk.internal.misc=ALL-UNNAMED \
+               --add-opens java.base/java.nio=ALL-UNNAMED \
+               -XX:+UnlockExperimentalVMOptions \
+               -XX:+UseEpsilonGC \
+               -Xms256m -Xmx256m \
+               -cp target/classes:target/test-classes \
+               com.hft.test.HftTestRunner
+
+      - name: Generate Javadocs
+        run: mvn javadoc:javadoc --batch-mode
+
+      - name: Upload Javadoc Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: javadocs
+          path: target/site/apidocs/
+          retention-days: 14
+
+  # ----------------------------------------------------------------------------
+  # Job 2: Infrastructure Script Validation & Shell Syntax Verification
+  # ----------------------------------------------------------------------------
+  infra-validation:
+    name: Validate Infrastructure & OS Tuning Scripts
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Check Shell Script Syntax
+        run: |
+          echo "Validating bash syntax across infra shell scripts..."
+          find infra -name "*.sh" -type f -exec bash -n {} +
+          echo "All infrastructure bash scripts passed syntax validation."
+
+      - name: Verify Infrastructure Configurations Presence
+        run: |
+          test -f infra/os-tuning/grub.conf
+          test -f infra/os-tuning/99-hft-sysctl.conf
+          test -f infra/network/onload_env.sh
+          test -f infra/network/ptp4l.conf
+          test -f infra/jvm/hft-jvm-opts.conf
+          test -f infra/docker/Dockerfile
+          test -f infra/docker/docker-compose.yml
+          test -f infra/deploy/deploy_production.sh
+          echo "All critical infrastructure configuration assets are present."
+
+  # ----------------------------------------------------------------------------
+  # Job 3: Docker Production Image Build Verification
+  # ----------------------------------------------------------------------------
+  docker-build:
+    name: Verify Production Docker Image Build
+    runs-on: ubuntu-latest
+    needs: [build-and-test]
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: actions/setup-buildx-action@v3
+
+      - name: Build HFT Production Container Image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: infra/docker/Dockerfile
+          push: false
+          tags: hft-platform:latest
