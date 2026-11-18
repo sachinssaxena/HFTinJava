@@ -342,7 +342,7 @@ public class HftTestRunner {
         assertEquals(Ouch50WireFormatter.ENTER_ORDER_LENGTH, len, "OUCH EnterOrder length must be 49 bytes");
         assertEquals((byte) 'O', buf.getByte(0), "Message type must be 'O'");
         assertEquals(99999L, buf.getLongBigEndian(1), "ClientOrderId token");
-        assertEquals(Side.BUY, buf.getByte(15), "Side byte");
+        assertEquals((byte) 'B', buf.getByte(15), "Side byte must be 'B'");
         assertEquals(100, buf.getIntBigEndian(16), "Shares");
         assertEquals(1_500_000, buf.getIntBigEndian(28), "Price");
     }
