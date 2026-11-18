@@ -55,6 +55,6 @@ export EF_UDP_RECV_SPIN=1
 
 # 7. CPU Affinity Alignment for Onload Stacks
 # Pins Onload network processing directly to trading cores (Node 0)
-export EF_CPUS="2,3,4,5"
+export EF_CPUS="2,3,4,5,6,7"
 
 echo "[HFT INFRA] Solarflare OpenOnload Environment Configured: EF_POLL_USEC=-1, EF_STACK_PER_THREAD=1, EF_RX_TIMESTAMPING=1"

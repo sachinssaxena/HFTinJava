@@ -57,7 +57,7 @@ services:
       - EF_SPIN_USEC=-1
       - EF_STACK_PER_THREAD=1
       - EF_RX_TIMESTAMPING=1
-      - EF_CPUS=2,3,4,5
+      - EF_CPUS=2,3,4,5,6,7
 
     command: ["production"]
     restart: "no"

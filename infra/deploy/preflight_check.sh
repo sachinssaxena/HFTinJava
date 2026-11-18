@@ -61,10 +61,10 @@ fi
 echo "[3] Checking Kernel Core Isolation (isolcpus)..."
 if [ -f "/sys/devices/system/cpu/isolated" ]; then
     ISOL=$(cat /sys/devices/system/cpu/isolated)
-    if [[ "$ISOL" == *"2-5"* || "$ISOL" == *"2,3,4,5"* ]]; then
-        check_pass "Trading cores 2-5 are strictly isolated (isolated=${ISOL})"
+    if [[ "$ISOL" == *"2-7"* || "$ISOL" == *"2-5"* || "$ISOL" == *"2,3,4,5"* ]]; then
+        check_pass "Trading cores are strictly isolated (isolated=${ISOL})"
     else
-        check_warn "Trading cores 2-5 not in isolated list (isolated='${ISOL}')"
+        check_warn "Trading cores not in isolated list (isolated='${ISOL}')"
     fi
 else
     check_warn "Kernel /sys/devices/system/cpu/isolated not present"

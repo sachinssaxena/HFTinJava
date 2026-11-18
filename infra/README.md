@@ -46,16 +46,17 @@ infra/
 
 ## 2. Hardware Topology & Physical Core Pinning (NUMA Node 0)
 
-To achieve median tick-to-trade latency under 100ns and p99 latency under 200ns, hardware resources are statically partitioned. All trading cores are co-located with the primary Solarflare PCIe NIC on **NUMA Node 0**:
+To achieve median tick-to-trade latency under 100ns and p99 latency under 200ns, hardware resources are statically partitioned. In Sprint 2, the core pinning topology scales to accommodate multi-venue gateways (NASDAQ OUCH and CME iLink 3), real-time drop copy, and deterministic audit journaling on **NUMA Node 0**:
 
 | Logical Core | Component / Workload | Isolation Mode | Execution Model |
 | :--- | :--- | :--- | :--- |
 | **Cores 0 - 1** | OS, Hardware IRQs, Network Drivers, JIT Compiler | Housekeeping (non-isolated) | Standard Linux CFS Scheduler |
-| **Core 2** | Market Data Ingestion & Dual-Feed UDP Arbitration | `isolcpus`, `nohz_full`, `rcu_nocbs` | Pinned busy-spin (`Thread.onSpinWait()`) |
-| **Core 3** | Co-located Trading Engine (L2/L3 Book + Strategy + Risk) | `isolcpus`, `nohz_full`, `rcu_nocbs` | Pinned busy-spin (`Thread.onSpinWait()`) |
-| **Core 4** | Execution Gateway & Binary Wire Serialization | `isolcpus`, `nohz_full`, `rcu_nocbs` | Pinned busy-spin (`Thread.onSpinWait()`) |
-| **Core 5** | Secondary Execution / Drop Copy / Fast Replay | `isolcpus`, `nohz_full`, `rcu_nocbs` | Pinned busy-spin (`Thread.onSpinWait()`) |
-| **Cores 6 - 7** | Chronicle Audit Journal Tap, TCP Gap Replay, JFR | Background (non-isolated) | Non-blocking SPSC consumer |
+| **Core 2** | Multi-Venue Market Data Ingestion & Dual-Feed Arbitration (ITCH/MDP) | `isolcpus`, `nohz_full`, `rcu_nocbs` | Pinned busy-spin (`Thread.onSpinWait()`) |
+| **Core 3** | Consolidated Trading Engine (CBBO + Queue-Aware Quoting + StatArb + SOR + Risk) | `isolcpus`, `nohz_full`, `rcu_nocbs` | Pinned busy-spin (`Thread.onSpinWait()`) |
+| **Core 4** | NASDAQ OUCH 5.0 TCP Gateway & Wire Serialization | `isolcpus`, `nohz_full`, `rcu_nocbs` | Pinned busy-spin (`Thread.onSpinWait()`) |
+| **Core 5** | CME iLink 3 Binary Gateway (SBE over TCP with FTI) | `isolcpus`, `nohz_full`, `rcu_nocbs` | Pinned busy-spin (`Thread.onSpinWait()`) |
+| **Core 6** | Real-Time Drop Copy (FIX 4.4 / binary) & Telemetry (`HdrHistogram`) | `isolcpus`, `nohz_full`, `rcu_nocbs` | Off-path SPSC tap consumer |
+| **Core 7** | MiFID II RTS 25 Deterministic Audit Journaling & TCP Gap Recovery | `isolcpus`, `nohz_full`, `rcu_nocbs` | Off-path SPSC tap consumer |
 
 ---
 
